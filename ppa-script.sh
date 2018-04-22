@@ -4,6 +4,14 @@ set -e #x
 
 DISTS=""
 
+l() { # TODO: better log
+  echo "$(date +%s): $*"
+}
+
+log() {
+  l "$@"
+}
+
 _tmp_init() {
   op="$PWD"
   tmp="/tmp/$$.$RANDOM"
@@ -88,6 +96,7 @@ ap_var() {
 }
 
 add_dist() { # ARGS: <dist-code> <origin> <label> [<desc>] [<suite>] [<version>] [<codename>]
+  log "ppa: Add $1 ($2) '$3'"
   DISTS="$DISTS $1"
   _set "ARCHS_$1" ""
   _set "COMPS_$1" ""
@@ -116,10 +125,12 @@ add_dist() { # ARGS: <dist-code> <origin> <label> [<desc>] [<suite>] [<version>]
 }
 
 add_comp() { # ARGS: <dist> <comp>
+  log "ppa->$1: Add arch $2"
   _ap "COMPS_$1" "$2"
 }
 
 add_arch() { # ARGS: <dist> <comp>
+  log "ppa->$1: Add component $2"
   _ap "ARCHS_$1" "$2"
 }
 
@@ -140,6 +151,7 @@ hash_files() {
 }
 
 _init() {
+  l "ppa: Loading repo @ $OUT"
   mkdir -p "$OUT/pool"
   mkdir -p "$OUT/.db"
   rm -rf "$OUT/.tmp"
@@ -149,6 +161,7 @@ _init() {
 }
 
 fin() {
+  log "ppa: Updating repo files"
   for dist in $DISTS; do
     ap_var "$dist" "Origin" "DIST_${dist}_ORIGIN"
     ap_var "$dist" "Label" "DIST_${dist}_LABEL"
@@ -162,6 +175,7 @@ fin() {
 
     for comp in $(_get "COMPS_$dist"); do
       for arch in $(_get "ARCHS_$dist"); do
+        log "ppa->$dist->$comp->arch: Generating Release & Packages"
         ap_var "${dist}_${comp}_${arch}" "Archive" "dist"
         ap_var "${dist}_${comp}_${arch}" "Version" "DIST_${dist}_VERSION"
         ap_var "${dist}_${comp}_${arch}" "Component" "comp"
@@ -181,7 +195,7 @@ fin() {
       done
     done
 
-    rm -f "$OUT/dists/$dist/Release" "$OUT/dists/$dist/Release.gpg"
+    log "ppa->$dist: Hashing"
 
     hash_files "md5" "MD5Sum"
     hash_files "sha1" "SHA1"
@@ -189,15 +203,21 @@ fin() {
 
     w_file "$dist" "dists/$dist/Release"
 
+    log "ppa->$dist: Signing"
+
     gpg2 --detach-sign --armor --output "$OUT/dists/$dist/Release.gpg" "$OUT/dists/$dist/Release"
 
   done
+
+  log "ppa: Replacing files"
 
   _tmp_init
   mv "$OUT_R/dists" "$tmp"
   mv "$OUT/dists" "$OUT_R/dists"
   _tmp_exit
   rm -rf "$OUT"
+
+  log "DONE!"
 }
 
 add_pkg_file() { # ARGS: <filename> <arch> <comp> <dist=*>
