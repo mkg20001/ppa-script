@@ -143,7 +143,6 @@ hash_files() {
   algoname="$2"
   c_file "$dist" "$algoname:"
   for f in $(find "$OUT/dists/$dist" -type f); do
-    #r=$("${algo}sum" "$f" | sed "s|^| |g" | sed "s|$f|${f/"$OUT/$dist/"/}|" | sed "s|  | 1234567890123456 |g") # TODO: add size
     r=$("${algo}sum" "$f" | sed "s| .*||g")
     rp=${f/"$OUT/dists/$dist/"/}
     size=$(du -b "$f" | sed "s|\t.*||g")
@@ -174,7 +173,7 @@ fin() {
     ap_var "$dist" "Codename" "DIST_${dist}_CODENAME"
     c_file "$dist" "Date: $(date -Ru | sed "s|+0000|UTC|")"
     c_file "$dist" "Architectures: $(_get ARCHS_${dist})"
-    c_file "$dist" "Components: $(_get COMPONENTS_${dist})"
+    c_file "$dist" "Components: $(_get COMPS_${dist})"
     ap_var "$dist" "Description" "DIST_${dist}_DESC"
 
     for comp in $(_get "COMPS_$dist"); do
@@ -209,8 +208,8 @@ fin() {
 
     log "ppa->$dist: Signing"
 
-    gpg2 --detach-sign --armor --output "$OUT/dists/$dist/Release.gpg" "$OUT/dists/$dist/Release"
-
+    gpg2 --armor --output "$OUT/dists/$dist/InRelease"   --clearsign   "$OUT/dists/$dist/Release"
+    gpg2 --armor --output "$OUT/dists/$dist/Release.gpg" --detach-sign "$OUT/dists/$dist/Release"
   done
 
   log "ppa: Replacing files"
