@@ -265,15 +265,22 @@ add_url() {
   DIST="$5"
   log "url->$PKG: Adding $URL (arch=$ARCH, comp=$COMP, dist=$DIST)"
   v="LATEST_${ARCH}_${COMP}_${DIST}"
+  v2="FILE_${ARCH}_${COMP}_${DIST}"
   cpkg=$(_db_r "_$PKG" "$v")
+  cfile=$(_db_r "_$PKG" "$v2")
   if [ "$cpkg" != "$URL" ]; then
     log "url->$PKG: Update..."
+    if [ ! -z "$cfile" ]; then
+      rm "$OUT_R/pool/$cfile"
+      # TODO: cleanup from pkg lists
+    fi
     _tmp_init
     wget "$URL"
     f=$(dir "$tmp")
     add_pkg_file "$tmp/$f" "$ARCH" "$COMP" "$DIST"
     _tmp_exit
     _db_w "_$PKG" "$v" "$URL"
+    _db_w "_$PKG" "$v2" "$f"
   else
     log "url->$PKG: Up-to-date!"
   fi
@@ -286,7 +293,7 @@ add_url_auto() {
   COMP="$3"
   DIST="$4"
   for arch in $ARCHS; do
-    if echo "$URL" | grep "[^a-z]$arch[^a-z]" > /dev/null; then
+    if basename "$URL" | grep "[^a-z]$arch[^a-z]" > /dev/null; then
       ARCH="$arch"
     fi
   done
@@ -295,6 +302,16 @@ add_url_auto() {
     exit 2
   fi
   add_url "$PKG" "$URL" "$ARCH" "$COMP" "$DIST"
+}
+
+add_gh_pkg() {
+  PKG="$1"
+  REPO="$2"
+  COMP="$3"
+  DIST="$4"
+  for deb in $(curl -s https://api.github.com/repos/$REPO/releases/latest?per_page=100 | jq -c ".assets[] | [ .browser_download_url ]" | grep -o "https.*.deb"); do
+    add_url_auto "$PKG" "$deb" "$COMP" "$DIST"
+  done
 }
 
 . config.sh # TODO: make this more dynamic
