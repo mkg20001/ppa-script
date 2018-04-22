@@ -1,8 +1,10 @@
 #!/bin/bash
 
-set -e #x
+set -e
 
 DISTS=""
+
+ARCHS="amd64 arm64 armel armhf i386 mips mipsel mips64el ppc64el s390x" # https://www.debian.org/ports/
 
 l() { # TODO: better log
   echo "$(date +%s): $*"
@@ -45,12 +47,14 @@ _ap() {
 
 _db_() {
   f="$OUT_R/.db/$1"
-  [ ! -e "$f" ] && touch "$f"
+  if [ ! -e "$f" ]; then
+    touch "$f"
+  fi
 }
 
 _db_w() {
   _db_ "$1"
-  c=$(cat "$f" | grep -v "^$2=")
+  c=$(cat "$f" | grep -v "^$2=" || echo "")
   k="$2"
   shift
   shift
@@ -60,7 +64,7 @@ $k=$*" > "$f"
 
 _db_r() {
   _db_ "$1"
-  cat "$f" | grep "^$2="
+  cat "$f" | grep "^$2=" | sed "s|^$2=||" || echo ""
 }
 
 _db_a() {
@@ -175,7 +179,7 @@ fin() {
 
     for comp in $(_get "COMPS_$dist"); do
       for arch in $(_get "ARCHS_$dist"); do
-        log "ppa->$dist->$comp->arch: Generating Release & Packages"
+        log "ppa->$dist->$comp->$arch: Generating Release & Packages"
         ap_var "${dist}_${comp}_${arch}" "Archive" "dist"
         ap_var "${dist}_${comp}_${arch}" "Version" "DIST_${dist}_VERSION"
         ap_var "${dist}_${comp}_${arch}" "Component" "comp"
@@ -185,7 +189,7 @@ fin() {
         w_file "${dist}_${comp}_${arch}" "dists/$dist/$comp/binary-$arch/Release"
 
         _tmp_init
-        for pkg in $(_db_r "${dist}_${comp}_${arch}_pkg"); do
+        for pkg in $(_db_r "${dist}_${comp}_${arch}_pkg" "files"); do
           ln "$OUT_R/pool/$pkg" "$tmp/$pkg"
         done
         sc_pkg=$(dpkg-scanpackages .)
@@ -212,7 +216,9 @@ fin() {
   log "ppa: Replacing files"
 
   _tmp_init
-  mv "$OUT_R/dists" "$tmp"
+  if [ -e "$OUT_R/dists" ]; then
+    mv "$OUT_R/dists" "$tmp"
+  fi
   mv "$OUT/dists" "$OUT_R/dists"
   _tmp_exit
   rm -rf "$OUT"
@@ -220,23 +226,75 @@ fin() {
   log "DONE!"
 }
 
+# Pkg add
+
 add_pkg_file() { # ARGS: <filename> <arch> <comp> <dist=*>
   FILE="$1"
   ARCH="$2"
   COMP="$3"
   DIST="$4"
-  [ -z "$DIST" ] && DIST="$DISTS"
   name=$(basename "$FILE")
+  log "ppa: Adding $name (arch=$ARCH, comp=$COMP, dist=$DIST)"
+  [ -z "$DIST" ] && DIST="$DISTS"
   cp "$name" "$OUT_R/pool/" # TODO: rm outdated
   for dist in $DIST; do
-    ([ -z "$COMP" ] && ARCH2=$(_get "COMPS_$dist")) || COMP2="$COMP"
+    if [ -z "$COMP" ]; then
+      COMP2=$(_get "COMPS_$dist")
+    else
+      COMP2="$COMP"
+    fi
     for comp in $COMP2; do
-      ([ -z "$ARCH" ] && ARCH2=$(_get "ARCHS_$dist")) || ARCH2="$ARCH"
+      if [ -z "$ARCH" ]; then
+        ARCH2=$(_get "ARCHS_$dist")
+      else
+        ARCH2="$ARCH"
+      fi
       for arch in $ARCH2; do
-        _db_a "${dist}_${comp}_${arch}_pkg" "$name"
+        _db_a "${dist}_${comp}_${arch}_pkg" "files" "$name"
+        log "ppa->$dist->$comp->$arch: Adding $name"
       done
     done
   done
+}
+
+add_url() {
+  PKG="$1"
+  URL="$2"
+  ARCH="$3"
+  COMP="$4"
+  DIST="$5"
+  log "url->$PKG: Adding $URL (arch=$ARCH, comp=$COMP, dist=$DIST)"
+  v="LATEST_${ARCH}_${COMP}_${DIST}"
+  cpkg=$(_db_r "_$PKG" "$v")
+  if [ "$cpkg" != "$URL" ]; then
+    log "url->$PKG: Update..."
+    _tmp_init
+    wget "$URL"
+    f=$(dir "$tmp")
+    add_pkg_file "$tmp/$f" "$ARCH" "$COMP" "$DIST"
+    _tmp_exit
+    _db_w "_$PKG" "$v" "$URL"
+  else
+    log "url->$PKG: Up-to-date!"
+  fi
+
+}
+
+add_url_auto() {
+  PKG="$1"
+  URL="$2"
+  COMP="$3"
+  DIST="$4"
+  for arch in $ARCHS; do
+    if echo "$URL" | grep "[^a-z]$arch[^a-z]" > /dev/null; then
+      ARCH="$arch"
+    fi
+  done
+  if [ -z "$ARCH" ]; then
+    log "url->$PKG: Failed to autodetect arch for $URL"
+    exit 2
+  fi
+  add_url "$PKG" "$URL" "$ARCH" "$COMP" "$DIST"
 }
 
 . config.sh # TODO: make this more dynamic

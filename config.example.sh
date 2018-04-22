@@ -18,7 +18,11 @@ done
 
 # Download some packages
 
-# ! TODO !
+# Download latest anydesk
+
+for anydesk_deb in $(curl -s https://anydesk.de/download?os=linux | grep '.deb"' | grep -o "https.*.deb"); do
+  add_url_auto anydesk "$anydesk_deb"
+done
 
 # Afterwards call "fin" to update the repo
 
