@@ -1,3 +1,4 @@
 ubuntu
 *.bak
 config.sh
+deploy.sh

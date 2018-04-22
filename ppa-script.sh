@@ -92,7 +92,7 @@ $2"
 
 w_file() {
   mkdir -p $(dirname "$OUT/$2")
-  _get "F_$1" > "$OUT/$2"
+  echo "$(_get F_$1)" > "$OUT/$2"
 }
 
 ap_var() {
@@ -142,7 +142,7 @@ hash_files() {
   algo="$1"
   algoname="$2"
   c_file "$dist" "$algoname:"
-  for f in $(find "$OUT/dists/$dist" -type f); do
+  for f in $(find "$OUT/dists/$dist" -type f | sort); do
     r=$("${algo}sum" "$f" | sed "s| .*||g")
     rp=${f/"$OUT/dists/$dist/"/}
     size=$(du -b "$f" | sed "s|\t.*||g")
@@ -191,9 +191,10 @@ fin() {
         for pkg in $(_db_r "${dist}_${comp}_${arch}_pkg" "files"); do
           ln "$OUT_R/pool/$pkg" "$tmp/$pkg"
         done
-        sc_pkg=$(dpkg-scanpackages .)
-        echo "$sc_pkg" | gzip > "$OUT/dists/$dist/$comp/binary-$arch/Packages.gz"
-        echo "$sc_pkg" | xz > "$OUT/dists/$dist/$comp/binary-$arch/Packages.xz"
+        dpkg-scanpackages . > "$OUT/dists/$dist/$comp/binary-$arch/Packages"
+        _ap postdel "$OUT/dists/$dist/$comp/binary-$arch/Packages"
+        cat "$OUT/dists/$dist/$comp/binary-$arch/Packages" | gzip > "$OUT/dists/$dist/$comp/binary-$arch/Packages.gz"
+        cat "$OUT/dists/$dist/$comp/binary-$arch/Packages" | xz > "$OUT/dists/$dist/$comp/binary-$arch/Packages.xz"
         _tmp_exit
       done
     done
@@ -203,6 +204,8 @@ fin() {
     hash_files "md5" "MD5Sum"
     hash_files "sha1" "SHA1"
     hash_files "sha256" "SHA256"
+
+    rm -f $postdel # TODO: make this less dangerous
 
     w_file "$dist" "dists/$dist/Release"
 
@@ -309,6 +312,7 @@ add_gh_pkg() {
   COMP="$3"
   DIST="$4"
   ARCH_HINT="$5"
+  log "pkg->$PKG: Updating from GitHub $REPO"
   for deb in $(curl -s https://api.github.com/repos/$REPO/releases/latest?per_page=100 | jq -c ".assets[] | [ .browser_download_url ]" | grep -o "https.*.deb"); do
     if [ ! -z "$ARCH_HINT" ]; then
       add_url "$PKG" "$deb" "$ARCH_HINT" "$COMP" "$DIST"
