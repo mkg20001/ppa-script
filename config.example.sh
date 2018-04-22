@@ -28,6 +28,10 @@ done
 
 add_gh_pkg atom atom/atom
 
+## Download latest lbry (in this case the arch is not contained in the filename)
+
+add_gh_pkg lbry lbryio/lbry-app "" "" "amd64"
+
 # Afterwards call "fin" to update the repo
 
 fin
