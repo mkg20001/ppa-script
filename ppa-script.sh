@@ -254,8 +254,12 @@ add_pkg_file() { # ARGS: <filename> <arch> <comp> <dist=*>
         ARCH2="$ARCH"
       fi
       for arch in $ARCH2; do
-        _db_a "${dist}_${comp}_${arch}_pkg" "files" "$name"
-        log "ppa->$dist->$comp->$arch: Adding $name"
+        if ! _db_r "${dist}_${comp}_${arch}_pkg" "files" | grep "$name" > /dev/null; then
+          _db_a "${dist}_${comp}_${arch}_pkg" "files" "$name"
+          log "ppa->$dist->$comp->$arch: Adding $name"
+        else
+          log "ppa->$dist->$comp->$arch: Skip adding $name (should not happen - likely a bug in the config)"
+        fi
       done
     done
   done
