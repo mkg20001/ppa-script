@@ -4,7 +4,7 @@ set -e
 
 DISTS=""
 
-ARCHS="amd64 arm64 armel armhf i386 mips mipsel mips64el ppc64el s390x" # https://www.debian.org/ports/
+ARCHS="all amd64 arm64 armel armhf i386 mips mipsel mips64el ppc64el s390x" # https://www.debian.org/ports/
 
 l() { # TODO: better log
   echo "$(date +%s): $*"
@@ -126,6 +126,8 @@ add_dist() { # ARGS: <dist-code> <origin> <label> [<desc>] [<suite>] [<version>]
   else
     _set "DIST_$1_CODENAME" "$7"
   fi
+
+  add_arch "$1" "all"
 }
 
 add_comp() { # ARGS: <dist> <comp>
