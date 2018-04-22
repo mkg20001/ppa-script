@@ -191,7 +191,7 @@ fin() {
         for pkg in $(_db_r "${dist}_${comp}_${arch}_pkg" "files"); do
           ln "$OUT_R/pool/$pkg" "$tmp/$pkg"
         done
-        dpkg-scanpackages . > "$OUT/dists/$dist/$comp/binary-$arch/Packages"
+        dpkg-scanpackages . | sed "s|^Filename: \\.|^Filename: pool|g" > "$OUT/dists/$dist/$comp/binary-$arch/Packages"
         _ap postdel "$OUT/dists/$dist/$comp/binary-$arch/Packages"
         cat "$OUT/dists/$dist/$comp/binary-$arch/Packages" | gzip > "$OUT/dists/$dist/$comp/binary-$arch/Packages.gz"
         cat "$OUT/dists/$dist/$comp/binary-$arch/Packages" | xz > "$OUT/dists/$dist/$comp/binary-$arch/Packages.xz"
