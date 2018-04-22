@@ -6,12 +6,9 @@ DISTS=""
 
 ARCHS="all amd64 arm64 armel armhf i386 mips mipsel mips64el ppc64el s390x" # https://www.debian.org/ports/
 
-l() { # TODO: better log
-  echo "$(date +%s): $*"
-}
-
 log() {
-  l "$@"
+#  echo "[$(date +%H:%M:%S)]: $*"
+  echo "$(date +%s): $*"
 }
 
 _tmp_init() {
@@ -74,6 +71,15 @@ _db_a() {
     _db_w "$1" "$2" "$3"
   else
     _db_w "$1" "$2" "$cur $3"
+  fi
+}
+
+_db_e() {
+  _db_ "$1"
+  cur=$(_db_r "$1" "$2")
+  if [ ! -z "$cur" ]; then
+    n=$(echo "$cur" | tr " " "\n" | grep -v "^$3$" | tr "\n" " ")
+    _db_w "$1" "$2" "$n"
   fi
 }
 
@@ -156,7 +162,7 @@ hash_files() {
 }
 
 _init() {
-  l "ppa: Loading repo @ $OUT"
+  log "ppa: Loading repo @ $OUT"
   mkdir -p "$OUT/pool"
   mkdir -p "$OUT/.db"
   rm -rf "$OUT/.tmp"
@@ -256,9 +262,41 @@ add_pkg_file() { # ARGS: <filename> <arch> <comp> <dist=*>
       for arch in $ARCH2; do
         if ! _db_r "${dist}_${comp}_${arch}_pkg" "files" | grep "$name" > /dev/null; then
           _db_a "${dist}_${comp}_${arch}_pkg" "files" "$name"
-          log "ppa->$dist->$comp->$arch: Adding $name"
+          log "ppa->$dist->$comp->$arch: Added $name"
         else
           log "ppa->$dist->$comp->$arch: Skip adding $name (should not happen - likely a bug in the config)"
+        fi
+      done
+    done
+  done
+}
+
+rm_pkg_file() { # ARGS: <filename> <arch> <comp> <dist=*>
+  FILE="$1"
+  ARCH="$2"
+  COMP="$3"
+  DIST="$4"
+  name=$(basename "$FILE")
+  log "ppa: Removing $name (arch=$ARCH, comp=$COMP, dist=$DIST)"
+  [ -z "$DIST" ] && DIST="$DISTS"
+  for dist in $DIST; do
+    if [ -z "$COMP" ]; then
+      COMP2=$(_get "COMPS_$dist")
+    else
+      COMP2="$COMP"
+    fi
+    for comp in $COMP2; do
+      if [ -z "$ARCH" ]; then
+        ARCH2=$(_get "ARCHS_$dist")
+      else
+        ARCH2="$ARCH"
+      fi
+      for arch in $ARCH2; do
+        if ! _db_r "${dist}_${comp}_${arch}_pkg" "files" | grep "$name" > /dev/null; then
+          log "ppa->$dist->$comp->$arch: Skip removing $name (should not happen - likely a bug in the config)"
+        else
+          _db_e "${dist}_${comp}_${arch}_pkg" "files" "$name"
+          log "ppa->$dist->$comp->$arch: Removed $name"
         fi
       done
     done
@@ -280,15 +318,15 @@ add_url() {
     log "url->$PKG: Update..."
     if [ ! -z "$cfile" ]; then
       rm "$OUT_R/pool/$cfile"
-      # TODO: cleanup from pkg lists
+      rm_pkg_file "$cfile" "$ARCH" "$COMP" "$DIST"
     fi
     _tmp_init
     wget "$URL"
-    f=$(dir "$tmp")
-    add_pkg_file "$tmp/$f" "$ARCH" "$COMP" "$DIST"
+    _f=$(dir "$tmp")
+    add_pkg_file "$tmp/$_f" "$ARCH" "$COMP" "$DIST"
     _tmp_exit
     _db_w "_$PKG" "$v" "$URL"
-    _db_w "_$PKG" "$v2" "$f"
+    _db_w "_$PKG" "$v2" "$_f"
   else
     log "url->$PKG: Up-to-date!"
   fi
@@ -328,4 +366,8 @@ add_gh_pkg() {
   done
 }
 
-. config.sh # TODO: make this more dynamic
+if [ -z "$CONFIG" ]; then
+  CONFIG="config.sh"
+fi
+
+. "$CONFIG"
