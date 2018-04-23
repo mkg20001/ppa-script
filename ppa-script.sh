@@ -366,6 +366,22 @@ add_gh_pkg() {
   done
 }
 
+add_gh_pkg_any() {
+  PKG="$1"
+  REPO="$2"
+  COMP="$3"
+  DIST="$4"
+  ARCH_HINT="$5"
+  log "pkg->$PKG: Updating from GitHub $REPO"
+  for deb in $(curl -s https://api.github.com/repos/$REPO/releases?pre_page=100 | jq -c ".[0].assets[] | [ .browser_download_url ]" | grep -o "https.*.deb"); do
+    if [ ! -z "$ARCH_HINT" ]; then
+      add_url "$PKG" "$deb" "$ARCH_HINT" "$COMP" "$DIST"
+    else
+      add_url_auto "$PKG" "$deb" "$COMP" "$DIST"
+    fi
+  done
+}
+
 if [ -z "$CONFIG" ]; then
   CONFIG="config.sh"
 fi
