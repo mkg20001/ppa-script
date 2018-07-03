@@ -5,6 +5,7 @@ set -e
 DISTS=""
 
 ARCHS="all amd64 arm64 armel armhf i386 mips mipsel mips64el ppc64el s390x" # https://www.debian.org/ports/
+OTHER_ARCHS="x64"
 
 log() {
 #  echo "[$(date +%H:%M:%S)]: $*"
@@ -338,11 +339,14 @@ add_url_auto() {
   URL="$2"
   COMP="$3"
   DIST="$4"
-  for arch in $ARCHS; do
+  for arch in $ARCHS $OTHER_ARCHS; do
     if basename "$URL" | grep "[^a-z]$arch[^a-z]" > /dev/null; then
       ARCH="$arch"
     fi
   done
+  if [ "$ARCH" == "x64" ]; then
+    ARCH="amd64"
+  fi
   if [ -z "$ARCH" ]; then
     log "url->$PKG: Failed to autodetect arch for $URL"
     exit 2
