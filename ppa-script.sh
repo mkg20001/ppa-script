@@ -247,7 +247,7 @@ add_pkg_file() { # ARGS: <filename> <arch> <comp> <dist=*>
   name=$(basename "$FILE")
   log "ppa: Adding $name (arch=$ARCH, comp=$COMP, dist=$DIST)"
   [ -z "$DIST" ] && DIST="$DISTS"
-  cp "$name" "$OUT_R/pool/" # TODO: rm outdated
+  cp "$FILE" "$OUT_R/pool/$name" # TODO: rm outdated
   for dist in $DIST; do
     if [ -z "$COMP" ]; then
       COMP2=$(_get "COMPS_$dist")
