@@ -8,7 +8,7 @@ Downloading and installing DEBs by hand got annoying. So I created a script!
 
 ## Examples
 
-Take a look at the [example config](/config.example.sh) or at the [config deployed at deb.mkg20001.io](https://deb.mkg20001.io/config.sh)
+Take a look at the [example config](/config.example.sh) or at the [config deployed at deb.mkg20001.io](https://deb.mkg20001.io/config/config.sh)
 
 ## Docs
 
