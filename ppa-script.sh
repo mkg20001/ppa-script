@@ -322,7 +322,7 @@ add_url() {
       rm_pkg_file "$cfile" "$ARCH" "$COMP" "$DIST"
     fi
     _tmp_init
-    wget "$URL"
+    wget "$URL" --progress=dot:giga
     _f=$(dir "$tmp")
     add_pkg_file "$tmp/$_f" "$ARCH" "$COMP" "$DIST"
     _tmp_exit
