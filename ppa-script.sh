@@ -201,7 +201,6 @@ fin() {
           ln "$OUT_R/pool/$pkg" "$tmp/$pkg"
         done
         dpkg-scanpackages . | sed "s|^Filename: \\.|Filename: pool|g" > "$OUT/dists/$dist/$comp/binary-$arch/Packages"
-        _ap postdel "$OUT/dists/$dist/$comp/binary-$arch/Packages"
         cat "$OUT/dists/$dist/$comp/binary-$arch/Packages" | gzip > "$OUT/dists/$dist/$comp/binary-$arch/Packages.gz"
         cat "$OUT/dists/$dist/$comp/binary-$arch/Packages" | xz > "$OUT/dists/$dist/$comp/binary-$arch/Packages.xz"
         _tmp_exit
@@ -213,8 +212,6 @@ fin() {
     hash_files "md5" "MD5Sum"
     hash_files "sha1" "SHA1"
     hash_files "sha256" "SHA256"
-
-    rm -f $postdel # TODO: make this less dangerous
 
     w_file "$dist" "dists/$dist/Release"
 
