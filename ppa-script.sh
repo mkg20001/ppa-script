@@ -106,6 +106,28 @@ ap_var() {
   c_file "$1" "$2: $(_get $3)"
 }
 
+guess_arch() {
+  FNAME="$1"
+  for arch in $ARCHS $OTHER_ARCHS; do
+    if echo "$FNAME" | grep "[^a-z]$arch[^a-z]" > /dev/null; then
+      ARCH="$arch"
+    fi
+  done
+  if [ "$ARCH" == "x64" ]; then
+    ARCH="amd64"
+  fi
+  if [ "$ARCH" == "x86_64" ]; then
+    ARCH="amd64"
+  fi
+  if [ "$ARCH" == "x86" ]; then
+    ARCH="i386"
+  fi
+  if [ -z "$ARCH" ]; then
+    log "guess->$PKG: Failed to autodetect arch for $FNAME"
+    exit 2
+  fi
+}
+
 add_dist() { # ARGS: <dist-code> <origin> <label> [<desc>] [<suite>] [<version>] [<codename>]
   log "ppa: Add $1 ($2) '$3'"
   DISTS="$DISTS $1"
@@ -242,6 +264,10 @@ add_pkg_file() { # ARGS: <filename> <arch> <comp> <dist=*>
   COMP="$3"
   DIST="$4"
   name=$(basename "$FILE")
+  if [ -z "$ARCH" ]; then
+    log "ppa: Guessing arch for $name"
+    guess_arch "$name"
+  fi
   log "ppa: Adding $name (arch=$ARCH, comp=$COMP, dist=$DIST)"
   [ -z "$DIST" ] && DIST="$DISTS"
   cp "$FILE" "$OUT_R/pool/$name" # TODO: rm outdated
@@ -336,24 +362,8 @@ add_url_auto() {
   URL="$2"
   COMP="$3"
   DIST="$4"
-  for arch in $ARCHS $OTHER_ARCHS; do
-    if basename "$URL" | grep "[^a-z]$arch[^a-z]" > /dev/null; then
-      ARCH="$arch"
-    fi
-  done
-  if [ "$ARCH" == "x64" ]; then
-    ARCH="amd64"
-  fi
-  if [ "$ARCH" == "x86_64" ]; then
-    ARCH="amd64"
-  fi
-  if [ "$ARCH" == "x86" ]; then
-    ARCH="i386"
-  fi
-  if [ -z "$ARCH" ]; then
-    log "url->$PKG: Failed to autodetect arch for $URL"
-    exit 2
-  fi
+  BNAME=$(basename "$URL")
+  guess_arch "$BNAME"
   add_url "$PKG" "$URL" "$ARCH" "$COMP" "$DIST"
 }
 
