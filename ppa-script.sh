@@ -239,8 +239,8 @@ fin() {
 
     log "ppa->$dist: Signing"
 
-    gpg2 --armor --output "$OUT/dists/$dist/InRelease"   --clearsign   "$OUT/dists/$dist/Release"
-    gpg2 --armor --output "$OUT/dists/$dist/Release.gpg" --detach-sign "$OUT/dists/$dist/Release"
+    gpg2 --default-key "$KEY" --armor --output "$OUT/dists/$dist/InRelease"   --clearsign   "$OUT/dists/$dist/Release"
+    gpg2 --default-key "$KEY" --armor --output "$OUT/dists/$dist/Release.gpg" --detach-sign "$OUT/dists/$dist/Release"
   done
 
   log "ppa: Replacing files"
