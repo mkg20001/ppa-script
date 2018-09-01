@@ -5,7 +5,7 @@ set -e
 DISTS=""
 
 ARCHS="all amd64 arm64 armel armhf i386 mips mipsel mips64el ppc64el s390x" # https://www.debian.org/ports/
-OTHER_ARCHS="x64 x86 x86_64"
+OTHER_ARCHS="i686 x64 x86 x86_64"
 
 log() {
 #  echo "[$(date +%H:%M:%S)]: $*"
@@ -120,6 +120,9 @@ guess_arch() {
     ARCH="amd64"
   fi
   if [ "$ARCH" == "x86" ]; then
+    ARCH="i386"
+  fi
+  if [ "$ARCH" == "i686" ]; then
     ARCH="i386"
   fi
   if [ -z "$ARCH" ]; then
