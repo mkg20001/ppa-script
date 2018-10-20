@@ -14,7 +14,7 @@ log() {
 
 _tmp_init() {
   op="$PWD"
-  tmp="/tmp/$$.$RANDOM"
+  tmp="$OUT/.tmp_$$.$RANDOM"
   mkdir "$tmp"
   cd "$tmp"
 }
