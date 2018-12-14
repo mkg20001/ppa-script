@@ -273,6 +273,8 @@ add_pkg_file() { # ARGS: <filename> <arch> <comp> <dist=*>
   COMP="$3"
   DIST="$4"
   name=$(basename "$FILE")
+  hash=$(sha256sum "$FILE" | sed "s| .*||g")
+  name="$hash.$name"
   if [ -z "$ARCH" ]; then
     log "ppa: Guessing arch for $name"
     guess_arch "$name"
@@ -359,7 +361,7 @@ add_url() {
     add_pkg_file "$tmp/$_f" "$ARCH" "$COMP" "$DIST"
     _tmp_exit
     _db_w "_$PKG" "$v" "$URL"
-    _db_w "_$PKG" "$v2" "$_f"
+    _db_w "_$PKG" "$v2" "$name"
   else
     log "url->$PKG: Up-to-date!"
   fi
