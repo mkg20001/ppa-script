@@ -7,6 +7,8 @@ DISTS=""
 ARCHS="all amd64 arm64 armel armhf i386 mips mipsel mips64el ppc64el s390x" # https://www.debian.org/ports/
 OTHER_ARCHS="i686 x64 x86 x86_64 64bit 32bit"
 
+IGNORE_RM=false
+
 log() {
 #  echo "[$(date +%H:%M:%S)]: $*"
   echo "$(date +%s): $*"
@@ -352,7 +354,9 @@ add_url() {
   if [ "$cpkg" != "$URL" ]; then
     log "url->$PKG: Update..."
     if [ ! -z "$cfile" ]; then
-      rm "$OUT_R/pool/$cfile"
+      if ! $IGNORE_RM; then
+        rm "$OUT_R/pool/$cfile"
+      fi
       rm_pkg_file "$cfile" "$ARCH" "$COMP" "$DIST"
     fi
     _tmp_init
