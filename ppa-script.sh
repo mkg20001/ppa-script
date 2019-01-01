@@ -355,7 +355,11 @@ add_url() {
     log "url->$PKG: Update..."
     if [ ! -z "$cfile" ]; then
       if ! $IGNORE_RM; then
-        rm "$OUT_R/pool/$cfile"
+        if [ -e "$OUT_R/pool/$cfile" ]; then
+          rm "$OUT_R/pool/$cfile"
+        else
+          log "url->$PKG: RM FAILED, $cfile vanished! Ignoring..."
+        fi
       fi
       rm_pkg_file "$cfile" "$ARCH" "$COMP" "$DIST"
     fi
