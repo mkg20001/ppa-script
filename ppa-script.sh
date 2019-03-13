@@ -5,7 +5,7 @@ set -e
 DISTS=""
 
 ARCHS="all amd64 arm64 armel armhf i386 mips mipsel mips64el ppc64el s390x" # https://www.debian.org/ports/
-OTHER_ARCHS="i686 x64 x86 x86_64 64bit 32bit"
+OTHER_ARCHS="i686 x64 x86 x86_64 64bit 32bit -386 _386"
 
 IGNORE_RM=false
 
@@ -131,6 +131,12 @@ guess_arch() {
     ARCH="amd64"
   fi
   if [ "$ARCH" == "32bit" ]; then
+    ARCH="i386"
+  fi
+  if [ "$ARCH" == "-386" ]; then
+    ARCH="i386"
+  fi
+  if [ "$ARCH" == "_386" ]; then
     ARCH="i386"
   fi
   if [ -z "$ARCH" ]; then
